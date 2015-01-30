@@ -10,6 +10,7 @@ var yargs = require('yargs');
 var path = require('path');
 var fs = require('fs');
 
+var findSimulators = require('node-firefox-find-simulators');
 var startSimulator = require('node-firefox-start-simulator');
 var connect = require('node-firefox-connect');
 var findApp = require('node-firefox-find-app');
@@ -56,9 +57,21 @@ gulp.task('build-css', function() {
     .pipe(gulp.dest('./build/css'));
 });
 
-gulp.task('simulate', function() {
+gulp.task('simulate-one', function() {
   simulate(appPath).then(function(results) {
     activeRuntimes.push(results);
+  });
+});
+
+gulp.task('simulate-all', function() {
+  return findSimulators().then(function(results) {
+    return Promise.all(results.map(function(simulator) {
+      return simulate(appPath, {
+        version: simulator.version
+      }).then(function(results) {
+        activeRuntimes.push(results);
+      });
+    }));
   });
 });
 
@@ -73,11 +86,21 @@ gulp.task('reload-css', function() {
   });
 });
 
+gulp.task('watch-css', function() {
+  gulp.watch('src/**/*.css', ['build', 'reload-css']);
+});
+
+gulp.task('default-one', ['lint', 'build', 'simulate-one', 'watch-css']);
+
+gulp.task('default-all', ['lint', 'build', 'simulate-all', 'watch-css']);
+
+gulp.task('default', ['default-one']);
+
 function simulate(appPath, simulatorDef) {
   var client;
   var simulator;
-
-  return startAndConnect().then(function(results) {
+  
+  return startAndConnect(simulatorDef).then(function(results) {
     client = results.client;
     simulator = results.simulator;
     return pushApp(client, appPath);
@@ -150,18 +173,5 @@ function uninstallApps(client, apps) {
   }));
 }
 
-// simulate -> start simulator, connect, uninstall, install, find, --> push { client, app } into activeSimulators, watch (activeSimulators)
-// startAndConnect (simulator)
-// pushApp -> app
-// simulate-all
 
-//gulp.task('watch', function() {
-//  gulp.watch('src/**/*', ['lint', 'build', 'reload-css']);
-//});
-
-gulp.task('watch-css', function() {
-  gulp.watch('src/**/*.css', ['build', 'reload-css']);
-});
-
-gulp.task('default', ['lint', 'build', 'simulate', 'watch-css']);
 
