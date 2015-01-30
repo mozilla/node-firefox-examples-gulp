@@ -16,7 +16,12 @@ var findApp = require('node-firefox-find-app');
 var installApp = require('node-firefox-install-app');
 var uninstallApp = require('node-firefox-uninstall-app');
 var launchApp = require('node-firefox-launch-app');
+var reloadCSS = require('node-firefox-reload-css');
 var Promise = require('es6-promise').Promise;
+
+var appPath = path.join(__dirname, 'build');
+
+var activeRuntimes = [];
 
 gulp.task('lint', function() {
   return gulp.src('src/js/**/*.js')
@@ -52,9 +57,19 @@ gulp.task('build-css', function() {
 });
 
 gulp.task('simulate', function() {
-  var appPath = path.join(__dirname, 'build');
   simulate(appPath).then(function(results) {
-    console.log('results', Object.keys(results));
+    activeRuntimes.push(results);
+  });
+});
+
+gulp.task('reload-css', function() {
+  console.log('going to reload', activeRuntimes.length);
+  activeRuntimes.forEach(function(runtime) {
+    reloadCSS({
+      app: runtime.app,
+      client: runtime.client,
+      srcPath: appPath
+    });
   });
 });
 
@@ -140,9 +155,13 @@ function uninstallApps(client, apps) {
 // pushApp -> app
 // simulate-all
 
-gulp.task('watch', function() {
-  gulp.watch('src/**/*', ['lint', 'build']);
+//gulp.task('watch', function() {
+//  gulp.watch('src/**/*', ['lint', 'build', 'reload-css']);
+//});
+
+gulp.task('watch-css', function() {
+  gulp.watch('src/**/*.css', ['build', 'reload-css']);
 });
 
-gulp.task('default', ['lint', 'build', 'install', 'simulate']);
+gulp.task('default', ['lint', 'build', 'simulate', 'watch-css']);
 
