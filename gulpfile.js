@@ -76,14 +76,7 @@ gulp.task('simulate-all', function() {
 });
 
 gulp.task('reload-css', function() {
-  console.log('going to reload', activeRuntimes.length);
-  activeRuntimes.forEach(function(runtime) {
-    reloadCSS({
-      app: runtime.app,
-      client: runtime.client,
-      srcPath: appPath
-    });
-  });
+  activeRuntimes.forEach(reloadRuntimeCSS);
 });
 
 gulp.task('watch-css', function() {
@@ -92,7 +85,7 @@ gulp.task('watch-css', function() {
 
 gulp.task('default-one', ['lint', 'build', 'simulate-one', 'watch-css']);
 
-gulp.task('default-all', ['lint', 'build', 'simulate-all', 'watch-css']);
+gulp.task('default-all', ['lint', 'build', 'simulate-all',  'watch-css']);
 
 gulp.task('default', ['default-one']);
 
@@ -124,7 +117,7 @@ function simulate(appPath, simulatorDef) {
 
 
 function startAndConnect(def) {
-	return startSimulator(def).then(function(simulator) {
+  return startSimulator(def).then(function(simulator) {
     return connect(simulator.port).then(function(client) {
       return ({
         simulator: simulator,
@@ -174,4 +167,15 @@ function uninstallApps(client, apps) {
 }
 
 
-
+function reloadRuntimeCSS(runtime) {
+  var binary = runtime.simulator.binary;
+  reloadCSS({
+    app: runtime.app,
+    client: runtime.client,
+    srcPath: appPath
+  }).then(function(res) {
+    console.log('reloaded done', binary);
+  }).catch(function(err) {
+    console.error('big error', err);
+  });
+}
